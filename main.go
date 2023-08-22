@@ -4,10 +4,11 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"github.com/mattn/go-runewidth"
+	"github.com/yetsing/startprompt/terminalcolor"
 	"os"
 	"sort"
 	"strings"
-
 	// This initializes gpython for runtime execution and is essential.
 	// It defines forward-declared symbols and registers native built-in modules, such as sys and time.
 	_ "github.com/go-python/gpython/stdlib"
@@ -59,6 +60,58 @@ var keywords = []string{
 	"yield",
 }
 
+var pyschema = map[token.TokenType]terminalcolor.Style{
+	token.Keyword:  terminalcolor.NewFgColorStyleHex("#ee00ee"),
+	token.Operator: terminalcolor.NewFgColorStyleHex("#aa6666"),
+	token.Number:   terminalcolor.NewFgColorStyleHex("#2aacb8"),
+	token.String:   terminalcolor.NewFgColorStyleHex("#6aab73"),
+
+	token.Error:   terminalcolor.NewColorStyleHex("#000000", "#ff8888"),
+	token.Comment: terminalcolor.NewFgColorStyleHex("#0000dd"),
+
+	token.CompletionMenuCurrentCompletion: terminalcolor.NewColorStyleHex("#000000", "#dddddd"),
+	token.CompletionMenuCompletion:        terminalcolor.NewColorStyleHex("#ffff88", "#888888"),
+	token.CompletionProgressButton:        terminalcolor.NewColorStyleHex("", "#000000"),
+	token.CompletionProgressBar:           terminalcolor.NewColorStyleHex("", "#aaaaaa"),
+
+	token.Prompt: terminalcolor.NewFgColorStyleHex("#004400"),
+}
+
+type Prompt struct {
+	line *startprompt.Line
+	code startprompt.Code
+}
+
+func NewPrompt(line *startprompt.Line, code startprompt.Code) startprompt.Prompt {
+	return &Prompt{line: line, code: code}
+}
+
+func (p *Prompt) GetPrompt() []token.Token {
+	tk := token.NewToken(token.Prompt, fmt.Sprintf("\nIn [%d]: ", grepl.inputCount))
+	return []token.Token{tk}
+}
+
+func (p *Prompt) GetSecondLinePrefix() []token.Token {
+	// 拿到默认提示符宽度
+	var sb strings.Builder
+	for _, t := range p.GetPrompt() {
+		sb.WriteString(t.Literal)
+	}
+	promptText := sb.String()
+	spaces := runewidth.StringWidth(promptText) - 5
+	// 输出类似这样的 "...  " ，宽度跟默认提示符一样
+	return []token.Token{
+		{
+			token.PromptSecondLinePrefix,
+			repeatByte(' ', spaces),
+		},
+		{
+			token.PromptSecondLinePrefix,
+			repeatByte('.', 3) + ": ",
+		},
+	}
+}
+
 func isKeyword(name string) bool {
 	for _, keyword := range keywords {
 		if keyword == name {
@@ -86,6 +139,7 @@ func pyTokens(code string) []token.Token {
 
 type PythonCode struct {
 	document *startprompt.Document
+	tokens   []token.Token
 }
 
 func newMultilineCode(document *startprompt.Document) startprompt.Code {
@@ -93,7 +147,10 @@ func newMultilineCode(document *startprompt.Document) startprompt.Code {
 }
 
 func (c *PythonCode) GetTokens() []token.Token {
-	return pyTokens(c.document.Text())
+	if len(c.tokens) == 0 {
+		c.tokens = pyTokens(c.document.Text())
+	}
+	return c.tokens
 }
 
 func (c *PythonCode) Complete() string {
@@ -123,11 +180,27 @@ func (c *PythonCode) GetCompletions() []*startprompt.Completion {
 	return completions
 }
 
+func (c *PythonCode) hasIndent() bool {
+	for _, t := range c.GetTokens() {
+		if t.TypeIs(token.Indent) {
+			return true
+		}
+	}
+	return false
+}
+
 func (c *PythonCode) ContinueInput() bool {
+	// 光标不在最后一行，直接换行即可
+	if !c.document.OnLastLine() {
+		return true
+	}
 	text := c.document.Text()
+	if len(text) == 0 {
+		return false
+	}
 	_, err := py.Compile(text+"\n", grepl.prog, py.SingleMode, 0, true)
 	if err != nil {
-		// Detect that we should start a continuation line
+		// 判断是否完整语句，比如 if 2 > 1: 并不是完整的语句，后面还需要有语句
 		errText := err.Error()
 		if strings.Contains(errText, "unexpected EOF while parsing") || strings.Contains(errText, "EOF while scanning triple-quoted string literal") {
 			stripped := strings.TrimSpace(text)
@@ -135,14 +208,20 @@ func (c *PythonCode) ContinueInput() bool {
 			return !isComment
 		}
 	}
-	// 用于需要连续按下两次 Enter 才结束当前输入
+	// 如果有缩进，需要连按两次 Enter 才结束当前输入
+	if c.hasIndent() {
+		return !strings.HasSuffix(text, "\n")
+	}
 	return false
 }
 
+// Repl ref: https://github.com/go-python/gpython/blob/main/repl/repl.go
 type Repl struct {
 	Context py.Context
 	Module  *py.Module
 	prog    string
+
+	inputCount int
 }
 
 func NewRepl(ctx py.Context) *Repl {
@@ -150,8 +229,9 @@ func NewRepl(ctx py.Context) *Repl {
 		ctx = py.NewContext(py.DefaultContextOpts())
 	}
 	r := &Repl{
-		Context: ctx,
-		prog:    "<stdin>",
+		Context:    ctx,
+		prog:       "<stdin>",
+		inputCount: 1,
 	}
 	var err error
 	r.Module, err = ctx.ModuleInit(&py.ModuleImpl{
@@ -166,6 +246,7 @@ func NewRepl(ctx py.Context) *Repl {
 }
 
 func (r *Repl) Run(line string) {
+	r.inputCount++
 	code, err := py.Compile(line+"\n", r.prog, py.SingleMode, 0, true)
 	if err != nil {
 		fmt.Printf("compile error: %v\n", err)
@@ -207,7 +288,11 @@ func (r *Repl) Completer(line string, pos int) (head string, completions []strin
 }
 
 func main() {
-	c, err := startprompt.NewCommandLine(&startprompt.CommandLineOption{NewCodeFunc: newMultilineCode})
+	c, err := startprompt.NewCommandLine(&startprompt.CommandLineOption{
+		NewCodeFunc:   newMultilineCode,
+		NewPromptFunc: NewPrompt,
+		Schema:        pyschema,
+	})
 	if err != nil {
 		fmt.Printf("failed to startprompt.NewCommandLine: %v\n", err)
 		return
@@ -219,7 +304,7 @@ func main() {
 		line, err := c.ReadInput()
 		if err != nil {
 			if errors.Is(err, startprompt.ExitError) {
-				fmt.Printf("\nDo you really want to exit ([y]/n)?")
+				fmt.Printf("Do you really want to exit ([y]/n)? ")
 				reader := bufio.NewReader(os.Stdin)
 				reply, err := reader.ReadByte()
 				if err != nil {
@@ -233,6 +318,9 @@ func main() {
 				fmt.Printf("ReadInput error: %v\n", err)
 			}
 			return
+		}
+		if len(line) == 0 {
+			continue
 		}
 		grepl.Run(line)
 	}
