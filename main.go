@@ -4,11 +4,12 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"github.com/mattn/go-runewidth"
-	"github.com/yetsing/startprompt/terminalcolor"
 	"os"
 	"sort"
 	"strings"
+
+	"github.com/mattn/go-runewidth"
+	"github.com/yetsing/startprompt/terminalcolor"
 	// This initializes gpython for runtime execution and is essential.
 	// It defines forward-declared symbols and registers native built-in modules, such as sys and time.
 	_ "github.com/go-python/gpython/stdlib"
@@ -87,7 +88,7 @@ func NewPrompt(line *startprompt.Line, code startprompt.Code) startprompt.Prompt
 }
 
 func (p *Prompt) GetPrompt() []token.Token {
-	tk := token.NewToken(token.Prompt, fmt.Sprintf("\nIn [%d]: ", grepl.inputCount))
+	tk := token.NewToken(token.Prompt, fmt.Sprintf("In [%d]: ", grepl.inputCount))
 	return []token.Token{tk}
 }
 
@@ -210,6 +211,7 @@ func (c *PythonCode) ContinueInput() bool {
 	}
 	// 如果有缩进，需要连按两次 Enter 才结束当前输入
 	if c.hasIndent() {
+		text = strings.TrimRight(text, " ")
 		return !strings.HasSuffix(text, "\n")
 	}
 	return false
@@ -292,6 +294,7 @@ func main() {
 		NewCodeFunc:   newMultilineCode,
 		NewPromptFunc: NewPrompt,
 		Schema:        pyschema,
+		AutoIndent:    true,
 	})
 	if err != nil {
 		fmt.Printf("failed to startprompt.NewCommandLine: %v\n", err)
@@ -300,6 +303,7 @@ func main() {
 
 	grepl = NewRepl(nil)
 
+	fmt.Println(`Type "Ctrl-D" to exit.`)
 	for {
 		line, err := c.ReadInput()
 		if err != nil {
@@ -323,5 +327,6 @@ func main() {
 			continue
 		}
 		grepl.Run(line)
+		fmt.Printf("\n")
 	}
 }
