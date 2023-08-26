@@ -24,6 +24,8 @@ github.com/yetsing/startprompt v0.0.4 h1:QmM8NEhqD2ORaX/4sa9vCpihRP6vH/XngDZA7Io
 github.com/yetsing/startprompt v0.0.4/go.mod h1:8+YU5wnylS/J86UmC/puvg0J98qh/kGW3vTDoJ39IJc=
 github.com/yetsing/startprompt v0.0.5 h1:rnVcJDQDzC4SO9e+DRdOC6xxjp5HtLfXX7XEYlWEgKg=
 github.com/yetsing/startprompt v0.0.5/go.mod h1:2OnRPCXEL8yeQOtVCstbcIYpkHZSQyPhxDg5sOmEnDk=
+github.com/yetsing/startprompt v0.0.7 h1:chzHD9NVRN6ldUxs3aUuwIzjrfqZRmgFlzQCFD6CRq4=
+github.com/yetsing/startprompt v0.0.7/go.mod h1:2OnRPCXEL8yeQOtVCstbcIYpkHZSQyPhxDg5sOmEnDk=
 golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.10.0 h1:SqMFp9UcQJZa+pmYuAKjd9xq1f0j5rLcDIk0mj4qAsA=
 golang.org/x/sys v0.10.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=

@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/go-python/gpython v0.2.0
-	github.com/yetsing/startprompt v0.0.5
+	github.com/yetsing/startprompt v0.0.7
 )
 
 require (
