@@ -1,10 +1,8 @@
 package main
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
-	"os"
 	"sort"
 	"strings"
 
@@ -70,21 +68,20 @@ var pyschema = map[token.TokenType]terminalcolor.Style{
 	token.Error:   terminalcolor.NewColorStyleHex("#000000", "#ff8888"),
 	token.Comment: terminalcolor.NewFgColorStyleHex("#0000dd"),
 
-	token.CompletionMenuCurrentCompletion: terminalcolor.NewColorStyleHex("#000000", "#dddddd"),
+	token.CompletionMenuCompletionCurrent: terminalcolor.NewColorStyleHex("#000000", "#dddddd"),
 	token.CompletionMenuCompletion:        terminalcolor.NewColorStyleHex("#ffff88", "#888888"),
-	token.CompletionProgressButton:        terminalcolor.NewColorStyleHex("", "#000000"),
-	token.CompletionProgressBar:           terminalcolor.NewColorStyleHex("", "#aaaaaa"),
+	token.CompletionMenuProgressButton:    terminalcolor.NewColorStyleHex("", "#000000"),
+	token.CompletionMenuProgressBar:       terminalcolor.NewColorStyleHex("", "#aaaaaa"),
 
 	token.Prompt: terminalcolor.NewFgColorStyleHex("#004400"),
 }
 
 type Prompt struct {
-	line *startprompt.Line
 	code startprompt.Code
 }
 
-func NewPrompt(line *startprompt.Line, code startprompt.Code) startprompt.Prompt {
-	return &Prompt{line: line, code: code}
+func NewPrompt(code startprompt.Code) startprompt.Prompt {
+	return &Prompt{code: code}
 }
 
 func (p *Prompt) GetPrompt() []token.Token {
@@ -217,6 +214,10 @@ func (c *PythonCode) ContinueInput() bool {
 	return false
 }
 
+func (c *PythonCode) CompleteAfterInsertText() bool {
+	return false
+}
+
 // Repl ref: https://github.com/go-python/gpython/blob/main/repl/repl.go
 type Repl struct {
 	Context py.Context
@@ -272,6 +273,7 @@ func (r *Repl) Completer(line string, pos int) (head string, completions []strin
 	lastSpace := strings.LastIndex(head, " ")
 	head, partial := line[:lastSpace+1], line[lastSpace+1:]
 	// log.Printf("head = %q, partial = %q, tail = %q", head, partial, tail)
+	startprompt.DebugLog("partial=%s", partial)
 	found := make(map[string]struct{})
 	match := func(d py.StringDict) {
 		for k := range d {
@@ -295,31 +297,33 @@ func main() {
 		PromptFactory: NewPrompt,
 		Schema:        pyschema,
 		AutoIndent:    true,
+		EnableDebug:   true,
 	})
 	if err != nil {
 		fmt.Printf("failed to startprompt.NewCommandLine: %v\n", err)
 		return
 	}
+	defer c.Close()
 
 	grepl = NewRepl(nil)
 
-	fmt.Println(`Type "Ctrl-D" to exit.`)
+	c.Println(`Type "Ctrl-D" to exit.`)
 	for {
 		line, err := c.ReadInput()
 		if err != nil {
 			if errors.Is(err, startprompt.ExitError) {
-				fmt.Printf("Do you really want to exit ([y]/n)? ")
-				reader := bufio.NewReader(os.Stdin)
-				reply, err := reader.ReadByte()
+				c.Printf("Do you really want to exit ([y]/n)? ")
+				reply, err := c.ReadRune()
 				if err != nil {
-					fmt.Printf("read error: %v\n", err)
+					c.Printf("read error: %v\n", err)
 					return
 				}
+				startprompt.DebugLog("reply %d", reply)
 				if reply == 'n' {
 					continue
 				}
 			} else {
-				fmt.Printf("ReadInput error: %v\n", err)
+				c.Printf("ReadInput error: %v\n", err)
 			}
 			return
 		}
@@ -327,6 +331,6 @@ func main() {
 			continue
 		}
 		grepl.Run(line)
-		fmt.Printf("\n")
+		c.Printf("\n")
 	}
 }
