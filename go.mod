@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/go-python/gpython v0.2.0
 	github.com/mattn/go-runewidth v0.0.15
-	github.com/yetsing/startprompt v0.0.11
+	github.com/yetsing/startprompt v0.0.15
 )
 
 require (
