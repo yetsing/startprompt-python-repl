@@ -14,8 +14,8 @@ github.com/rivo/uniseg v0.2.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJ
 github.com/rivo/uniseg v0.4.3/go.mod h1:FN3SvrM+Zdj16jyLfmOkMNblXMcoc8DfTHruCPUcx88=
 github.com/rivo/uniseg v0.4.4 h1:8TfxU8dW6PdqD27gjM8MVNuicgxIjxpm4K7x4jp8sis=
 github.com/rivo/uniseg v0.4.4/go.mod h1:FN3SvrM+Zdj16jyLfmOkMNblXMcoc8DfTHruCPUcx88=
-github.com/yetsing/startprompt v0.0.15 h1:x4vf/RxX9LM/kZkkiX7bqDqztP5svQ0K0C12hmz4q8U=
-github.com/yetsing/startprompt v0.0.15/go.mod h1:8EMmF4Qgh+mDYTl9rQ24OhYwErEyHBdrYzXMrk6SWT4=
+github.com/yetsing/startprompt v0.0.16 h1:SMlx4ko+W0Df0kABAXsh/xRoxlgu6qvAsCEihCitLRg=
+github.com/yetsing/startprompt v0.0.16/go.mod h1:8EMmF4Qgh+mDYTl9rQ24OhYwErEyHBdrYzXMrk6SWT4=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
 golang.design/x/clipboard v0.7.0 h1:4Je8M/ys9AJumVnl8m+rZnIvstSnYj1fvzqYrU3TXvo=
 golang.design/x/clipboard v0.7.0/go.mod h1:PQIvqYO9GP29yINEfsEn5zSQKAz3UgXmZKzDA6dnq2E=

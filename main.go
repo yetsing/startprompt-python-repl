@@ -59,7 +59,7 @@ var keywords = []string{
 	"yield",
 }
 
-var pyschema = map[token.TokenType]terminalcolor.Style{
+var pyschema = map[token.TokenType]*terminalcolor.ColorStyle{
 	token.Keyword:  terminalcolor.NewFgColorStyleHex("#ee00ee"),
 	token.Operator: terminalcolor.NewFgColorStyleHex("#aa6666"),
 	token.Number:   terminalcolor.NewFgColorStyleHex("#2aacb8"),
