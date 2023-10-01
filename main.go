@@ -320,6 +320,9 @@ func main() {
 				}
 				startprompt.DebugLog("reply %d", reply)
 				if reply == 'n' {
+					//    此时不是 raw mode ，所以用户输入需要按下 enter 键之后才能读取到
+					//    如果不处理掉，就会导致 ReadInput 多出一个 enter 的处理
+					_, _ = c.ReadRune()
 					continue
 				}
 			} else {
